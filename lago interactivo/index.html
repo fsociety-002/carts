@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta name="robots" content="noindex, nofollow">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reflejo Bajo la Luna</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@200&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0a0a2a;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #instruction {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            pointer-events: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.9; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="lakeCanvas"></canvas>
+    <div id="instruction">Toca el agua para crear magia</div>
+
+    <script>
+        // ==================== CONFIGURACIÓN ====================
+        window.TEMPLATE_VARS = {
+            selectedTheme: 0, // 0 = Rosado, 1 = Medianoche, 2 = Corazón, 3 = Jardín
+            floatingMessages: [
+                "Te Amo", "Mi Luz", "Siempre", "Tú y Yo", 
+                "Eternidad", "Destino", "Mi Alma", "Te quiero", "<3"
+            ]
+        };
+
+        // ==================== VARIABLES GLOBALES ====================
+        const canvas = document.getElementById('lakeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const moonCanvas = document.createElement('canvas');
+        const moonCtx = moonCanvas.getContext('2d');
+
+        let width, height, horizonY, moonRadius, moonX, moonY;
+
+        const stars = [];
+        const craters = [];
+        const ripples = [];
+        const words = [];
+        const ambientWaves = [];
+
+        // ==================== TEMAS ====================
+        const themes = [
+            {
+                name: "Luces del Atardecer",
+                skyTop: "#1a0000",
+                skyMid: "#3d0c2b",
+                skyBot: "#6a1a41",
+                moonGlow: "#ffb6c1",
+                moonC1: "#fff0f5",
+                moonC2: "#e0c0d0",
+                moonC3: "#c0a0b0",
+                waterTop: "#090947",
+                waterBot: "#050212",
+                accent: "255, 182, 193",
+                btnColor: "linear-gradient(135deg, #ff69b4, #ff1493)"
+            },
+            {
+                name: "Medianoche Mística",
+                skyTop: "#010014",
+                skyMid: "#0a0a2a",
+                skyBot: "#1a1a40",
+                moonGlow: "#a1c4fd",
+                moonC1: "#e0ffe9",
+                moonC2: "#b8c6db",
+                moonC3: "#8e9eab",
+                waterTop: "#003c8f",
+                waterBot: "#010014",
+                accent: "161, 196, 255",
+                btnColor: "linear-gradient(135deg, #4a90e2, #1e3a8a)"
+            },
+            {
+                name: "Llama del Corazón",
+                skyTop: "#2b0000",
+                skyMid: "#590000",
+                skyBot: "#8b0000",
+                moonGlow: "#ffd700",
+                moonC1: "#ff8c00",
+                moonC2: "#f4a460",
+                moonC3: "#cd853f",
+                waterTop: "#4a0000",
+                waterBot: "#1a0000",
+                accent: "255, 215, 0",
+                btnColor: "linear-gradient(135deg, #b22222, #ffd700)"
+            },
+            {
+                name: "Jardín de Promesa",
+                skyTop: "#0f2027",
+                skyMid: "#203a43",
+                skyBot: "#2c5364",
+                moonGlow: "#60ebd1",
+                moonC1: "#a1c4fd",
+                moonC2: "#60ebd1",
+                moonC3: "#00ff87",
+                waterTop: "#00223e",
+                waterBot: "#0f2027",
+                accent: "96, 235, 209",
+                btnColor: "linear-gradient(135deg, #2c5364, #00ff87)"
+            }
+        ];
+
+        let currentTheme = themes[window.TEMPLATE_VARS.selectedTheme];
+
+        // ==================== CONSTANTES ====================
+        const STAR_COUNT = 300;
+        const CRATER_COUNT = 20;
+        const AMBIENT_WAVES_COUNT = 150;
+
+        let isInteracting = false;
+        let lastSpawnTime = 0;
+
+        // ==================== CLASES ====================
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * horizonY;
+                this.radius = 1.5 * Math.random();
+                this.baseAlpha = 0.3 + 0.7 * Math.random();
+                this.twinkleSpeed = 0.05 * Math.random();
+            }
+
+            draw() {
+                const alpha = this.baseAlpha + 0.3 * Math.sin(Date.now() * this.twinkleSpeed);
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Crater {
+            constructor() {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * moonRadius * 0.85;
+                this.offsetX = Math.cos(angle) * dist;
+                this.offsetY = Math.sin(angle) * dist;
+                this.radius = 5 + Math.random() * (moonRadius / 12);
+                this.alpha = 0.1 + 0.1 * Math.random();
+            }
+
+            draw(ctxMoon, centerX, centerY) {
+                const x = centerX + this.offsetX;
+                const y = centerY + this.offsetY;
+
+                ctxMoon.save();
+                ctxMoon.beginPath();
+                ctxMoon.arc(x, y, this.radius, 0, 2 * Math.PI);
+                ctxMoon.fillStyle = `rgba(20, 5, 44, ${this.alpha})`;
+                ctxMoon.fill();
+
+                // Highlight
+                ctxMoon.beginPath();
+                ctxMoon.arc(x + this.radius * 0.3, y + this.radius * 0.3, this.radius * 1.1, 0, 2 * Math.PI);
+                ctxMoon.fillStyle = `rgba(255, 255, 255, 0.08)`;
+                ctxMoon.fill();
+                ctxMoon.restore();
+            }
+        }
+
+        class AmbientWave {
+            constructor(reset = true) {
+                this.reset(reset);
+            }
+
+            reset(reset = false) {
+                this.x = Math.random() * width;
+                this.y = horizonY + Math.random() * (height - horizonY);
+                const depth = (this.y - horizonY) / (height - horizonY);
+                this.width = (5 + 15 * Math.random()) * (1 + 3 * depth);
+                this.height = 0.5 + 1 * depth;
+
+                const distToMoon = Math.abs(this.x - moonX);
+                const moonInfluence = Math.max(0, 1 - distToMoon / (width / 1.5));
+
+                this.maxAlpha = (0.1 + 0.6 * moonInfluence) * (0.3 + 0.7 * Math.random());
+                this.alpha = reset ? Math.random() * this.maxAlpha : 0;
+                this.alphaSpeed = 0.005 + 0.01 * Math.random();
+                this.growing = !reset || Math.random() > 0.5;
+                this.sway = 0.3 * (Math.random() - 0.5);
+            }
+
+            update() {
+                this.x += this.sway;
+
+                if (this.growing) {
+                    this.alpha += this.alphaSpeed;
+                    if (this.alpha >= this.maxAlpha) this.growing = false;
+                } else {
+                    this.alpha -= this.alphaSpeed;
+                    if (this.alpha <= 0) this.reset();
+                }
+            }
+
+            draw() {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, this.width, this.height, 0, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(${currentTheme.accent}, ${this.alpha})`;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Ripple {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 1;
+                this.maxLife = 50 + 100 * Math.random();
+                this.alpha = 0.8;
+                this.speed = 1 + Math.random();
+            }
+
+            update() {
+                this.radius += this.speed;
+                this.alpha -= this.speed / this.maxLife;
+            }
+
+            draw() {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, 2 * this.radius, 0.5 * this.radius, 0, 0, 2 * Math.PI);
+                ctx.strokeStyle = `rgba(${currentTheme.accent}, ${0.5 * this.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        class FloatingWord {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.text = loveMessages[Math.floor(Math.random() * loveMessages.length)];
+                this.alpha = 0;
+                this.life = 0;
+                this.maxLife = 150 + 100 * Math.random();
+                this.speedY = 0.5 + 1 * Math.random();
+                this.angle = Math.random() * Math.PI * 2;
+                this.size = 14 + 10 * Math.random();
+            }
+
+            update() {
+                this.life++;
+                this.y -= this.speedY;
+                this.x += 0.5 * Math.sin(0.05 * this.life + this.angle);
+
+                if (this.life < 30) {
+                    this.alpha = this.life / 30;
+                } else if (this.life > this.maxLife - 50) {
+                    this.alpha = (this.maxLife - this.life) / 50;
+                } else {
+                    this.alpha = 1;
+                }
+            }
+
+            draw() {
+                if (this.life >= this.maxLife) return;
+
+                ctx.save();
+                ctx.font = `${this.size}px 'Cinzel', serif`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                ctx.shadowColor = currentTheme.moonGlow;
+                ctx.shadowBlur = 10;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        // ==================== ARRAYS DE MENSAJES ====================
+        const rawMessages = window.TEMPLATE_VARS.floatingMessages;
+        const loveMessages = Array.isArray(rawMessages) ? rawMessages : [rawMessages];
+
+        // ==================== FUNCIONES DE INICIALIZACIÓN ====================
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+
+            const isMobile = width <= 768;
+            horizonY = 0.55 * height;
+            moonRadius = Math.max(width, height) * (isMobile ? 0.25 : 0.15);
+            moonX = width / 2;
+            moonY = horizonY - moonRadius - (isMobile ? 20 : 50);
+
+            createStars();
+            createCraters();
+            cacheMoon();
+            createAmbientWaves();
+        }
+
+        function createStars() {
+            stars.length = 0;
+            for (let i = 0; i < STAR_COUNT; i++) {
+                stars.push(new Star());
+            }
+        }
+
+        function createCraters() {
+            craters.length = 0;
+            for (let i = 0; i < CRATER_COUNT; i++) {
+                craters.push(new Crater());
+            }
+        }
+
+        function createAmbientWaves() {
+            ambientWaves.length = 0;
+            for (let i = 0; i < AMBIENT_WAVES_COUNT; i++) {
+                ambientWaves.push(new AmbientWave());
+            }
+        }
+
+        function cacheMoon() {
+            const size = 2 * (moonRadius + 80);
+            moonCanvas.width = size;
+            moonCanvas.height = size;
+
+            const centerX = size / 2;
+            const centerY = size / 2;
+
+            // Glow
+            const gradient = moonCtx.createRadialGradient(centerX, centerY, 0.8 * moonRadius, centerX, centerY, moonRadius);
+            gradient.addColorStop(0, currentTheme.moonC1);
+            gradient.addColorStop(0.8, currentTheme.moonC2);
+            gradient.addColorStop(1, currentTheme.moonC3);
+
+            moonCtx.shadowBlur = 60;
+            moonCtx.shadowColor = currentTheme.moonGlow;
+
+            moonCtx.beginPath();
+            moonCtx.arc(centerX, centerY, moonRadius, 0, 2 * Math.PI);
+            moonCtx.fillStyle = gradient;
+            moonCtx.fill();
+
+            // Craters
+            craters.forEach(crater => crater.draw(moonCtx, centerX, centerY));
+        }
+
+        function drawMoon(x, y) {
+            const offset = moonRadius + 80;
+            ctx.drawImage(moonCanvas, x - offset, y - offset);
+        }
+
+        function drawReflectedMoon() {
+            const reflectedY = horizonY + (horizonY - moonY);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, horizonY, width, height - horizonY);
+            ctx.clip();
+
+            ctx.globalAlpha = 0.4;
+            drawMoon(moonX, reflectedY);
+
+            // Water reflection overlay
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = `rgba(0, 0, 0, 0.6)`;
+            ctx.fillRect(0, horizonY, width, height - horizonY);
+
+            ctx.restore();
+        }
+
+        function handleInteraction(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.touches ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+            const y = e.touches ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+
+            if (y > horizonY) {
+                ripples.push(new Ripple(x, y));
+
+                const now = Date.now();
+                if (now - lastSpawnTime > 300) {
+                    words.push(new FloatingWord(x, y));
+                    lastSpawnTime = now;
+                }
+            }
+        }
+
+        // ==================== ANIMACIÓN PRINCIPAL ====================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Sky gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, horizonY);
+            skyGradient.addColorStop(0, currentTheme.skyTop);
+            skyGradient.addColorStop(0.5, currentTheme.skyMid);
+            skyGradient.addColorStop(1, currentTheme.skyBot);
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Stars
+            stars.forEach(star => star.draw());
+
+            // Moon
+            drawMoon(moonX, moonY);
+
+            // Water
+            const waterGradient = ctx.createLinearGradient(0, horizonY, 0, height);
+            waterGradient.addColorStop(0, currentTheme.waterTop);
+            waterGradient.addColorStop(1, currentTheme.waterBot);
+            ctx.fillStyle = waterGradient;
+            ctx.fillRect(0, horizonY, width, height - horizonY);
+
+            // Horizon line
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(0, horizonY);
+            ctx.lineTo(width, horizonY);
+            ctx.strokeStyle = `rgba(${currentTheme.accent}, 0.2)`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+
+            // Reflected moon
+            drawReflectedMoon();
+
+            // Ambient waves
+            ambientWaves.forEach(wave => {
+                wave.update();
+                wave.draw();
+            });
+
+            // Ripples
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                ripples[i].update();
+                ripples[i].draw();
+                if (ripples[i].alpha <= 0) ripples.splice(i, 1);
+            }
+
+            // Floating words
+            for (let i = words.length - 1; i >= 0; i--) {
+                words[i].update();
+                words[i].draw();
+                if (words[i].life >= words[i].maxLife) words.splice(i, 1);
+            }
+        }
+
+        // ==================== EVENTOS ====================
+        canvas.addEventListener('click', handleInteraction);
+        canvas.addEventListener('mousemove', handleInteraction);
+        canvas.addEventListener('touchstart', handleInteraction);
+        canvas.addEventListener('touchmove', handleInteraction);
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // ==================== INICIO ====================
+        resizeCanvas();
+        animate();
+    </script>
+
+
+</body>
+</html>
