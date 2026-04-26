@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta name="robots" content="noindex, nofollow">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Un Tarro Infinito Para Ti</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Montserrat:wght@400;600&display=swap');
+
+        :root {
+            --gold: #ffd700;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #2a1b12 0%, #1a120c 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            font-family: 'Montserrat', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        .firefly {
+            position: absolute;
+            background: gold;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(2px);
+            z-index: 1;
+            opacity: 0;
+            animation: drift linear infinite;
+            box-shadow: 0 0 8px gold;
+        }
+
+        @keyframes drift {
+            0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+            20%  { opacity: 0.6; }
+            80%  { opacity: 0.6; }
+            100% { transform: translateY(-100vh) translateX(50px) scale(0.5); opacity: 0; }
+        }
+
+        .click-ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 215, 0, 0.8);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            animation: rippleAnim 0.6s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes rippleAnim {
+            0%   { width: 0; height: 0; opacity: 1; border-width: 4px; }
+            100% { width: 120px; height: 120px; opacity: 0; border-width: 0; }
+        }
+
+        .click-sparkle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: gold;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkAnim 0.8s ease-out forwards;
+            z-index: 100;
+            box-shadow: 0 0 10px gold, 0 0 20px gold;
+        }
+
+        @keyframes sparkAnim {
+            0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); }
+        }
+
+        .ui-layer {
+            position: relative;
+            margin-top: 8vh;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+            width: 90%;
+        }
+
+        h1 {
+            font-family: 'Caveat', cursive;
+            font-size: clamp(3rem, 10vw, 5rem);
+            color: gold;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(255,215,0,0.4);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        p {
+            color: rgba(255,255,255,0.8);
+            font-size: clamp(0.9rem, 3.5vw, 1.2rem);
+            margin-top: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            animation: pulse 2s infinite;
+        }
+
+        .game-wrapper {
+            position: relative;
+            width: 100%;
+            height: 65dvh;
+            max-width: 800px;
+            z-index: 5;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            object-fit: cover;
+            object-position: bottom center;
+        }
+
+        .message-card {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.1) rotate(-10deg);
+            background: #fffdf5;
+            padding: clamp(20px, 5vw, 30px) clamp(20px, 6vw, 40px);
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 40px rgba(255,215,0,0.3);
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 20;
+            color: #333;
+            border: 3px solid gold;
+            transition: all 2s cubic-bezier(0.25, 1, 0.5, 1);
+            width: 85%;
+            max-width: 400px;
+        }
+
+        .message-card.show {
+            top: 45%;
+            transform: translate(-50%, -50%) scale(1) rotate(0);
+            opacity: 1;
+            pointer-events: auto;
+            animation: gentle-float 4s ease-in-out infinite 2s;
+        }
+
+        .message-card h2 {
+            font-family: 'Caveat', cursive;
+            color: #d81b60;
+            margin: 0 0 clamp(10px, 3vw, 15px) 0;
+            font-size: clamp(2.2rem, 8vw, 3rem);
+        }
+
+        .message-card p.card-text {
+            color: #4a3b32;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            margin: 0;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        @keyframes gentle-float {
+            0%, 100% { transform: translate(-50%, -50%); }
+            50%      { transform: translate(-50%, -53%); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-15px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50%      { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-layer">
+        <h1>Para ti...</h1>
+        <p id="instruction">Toca la pantalla para llenarlo de flores</p>
+    </div>
+
+    <div class="message-card" id="messageCard">
+        <h2>¡Sorpresa!</h2>
+        <p class="card-text">Cada flor representa un motivo por el que te quiero. ¡Gracias por estar en mi vida!</p>
+    </div>
+
+    <div class="game-wrapper" id="canvas-container"></div>
+
+    <script>
+        // ==================== CONFIGURACIÓN ====================
+        window.TEMPLATE_VARS = {
+            instructionText: "Toca la pantalla para llenarlo de flores"
+        };
+
+        const GOAL_FLOWERS = 20;   // Cantidad para activar la sorpresa
+        const MAX_FLOWERS = 65;    // Límite máximo de flores
+
+        let eventTriggered = false;
+        let jarGlowing = false;
+
+        // ==================== MATTER.JS SETUP ====================
+        const Engine = Matter.Engine;
+        const Render = Matter.Render;
+        const Runner = Matter.Runner;
+        const Bodies = Matter.Bodies;
+        const Composite = Matter.Composite;
+        const Events = Matter.Events;
+        const Body = Matter.Body;
+
+        const engine = Engine.create();
+        engine.gravity.y = 1.2; // Gravedad suave
+
+        const logicalWidth = 800;
+        const logicalHeight = 800;
+
+        const render = Render.create({
+            element: document.getElementById('canvas-container'),
+            engine: engine,
+            options: {
+                width: logicalWidth,
+                height: logicalHeight,
+                wireframes: false,
+                background: 'transparent',
+                pixelRatio: window.devicePixelRatio || 1
+            }
+        });
+
+        // ==================== JAR (Tarro) - Paredes estáticas ====================
+        const jarOptions = {
+            isStatic: true,
+            render: { visible: false },
+            friction: 0.1,
+            restitution: 0.2
+        };
+
+        Composite.add(engine.world, [
+            // Paredes laterales
+            Bodies.rectangle(260, 475, 20, 470, jarOptions),
+            Bodies.rectangle(540, 475, 20, 470, jarOptions),
+            // Base
+            Bodies.rectangle(400, 710, 300, 20, jarOptions),
+            // Bordes inclinados de la boca
+            Bodies.polygon(280, 690, 3, 30, { isStatic: true, angle: Math.PI/4, render: { visible: false } }),
+            Bodies.polygon(520, 690, 3, 30, { isStatic: true, angle: -Math.PI/4, render: { visible: false } })
+        ]);
+
+        // ==================== TEXTURAS DE FLORES ====================
+        function createFlowerTextures() {
+            const textures = [];
+            const size = 80;
+
+            // Flor 1 - Rosa
+            let canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            let ctx = canvas.getContext('2d');
+            ctx.translate(40, 40);
+
+            for (let i = 0; i < 12; i++) {
+                ctx.rotate(Math.PI / 6);
+                ctx.fillStyle = '#FF4081';
+                ctx.beginPath();
+                ctx.ellipse(0, 20, 8, 22, 0, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            ctx.fillStyle = '#4E342E';
+            ctx.beginPath();
+            ctx.arc(0, 0, 14, 0, 2 * Math.PI);
+            ctx.fill();
+            textures.push(canvas.toDataURL('image/png'));
+
+            // Flor 2 - Amarilla
+            canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            ctx = canvas.getContext('2d');
+            ctx.translate(40, 40);
+
+            for (let i = 0; i < 8; i++) {
+                ctx.rotate(Math.PI / 4);
+                ctx.fillStyle = '#FFF9C4';
+                ctx.beginPath();
+                ctx.ellipse(0, 18, 10, 18, 0, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            ctx.fillStyle = '#FF9800';
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, 0, 2 * Math.PI);
+            ctx.fill();
+            textures.push(canvas.toDataURL('image/png'));
+
+            // Flor 3 - Estilo margarita
+            canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            ctx = canvas.getContext('2d');
+            ctx.translate(40, 40);
+            ctx.fillStyle = '#FFEB3B';
+            ctx.fillRect(-3, 10, 6, 25);
+
+            ctx.beginPath();
+            ctx.ellipse(-8, 25, 5, 12, -Math.PI/4, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(8, 25, 5, 12, Math.PI/4, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.fillStyle = '#FF9800';
+            ctx.beginPath();
+            ctx.moveTo(-15, -15);
+            ctx.lineTo(-12, 5);
+            ctx.quadraticCurveTo(0, 25, 12, 5);
+            ctx.lineTo(15, -15);
+            ctx.lineTo(6, -5);
+            ctx.lineTo(0, -18);
+            ctx.lineTo(-6, -5);
+            ctx.closePath();
+            ctx.fill();
+
+            textures.push(canvas.toDataURL('image/png'));
+            return textures;
+        }
+
+        const flowerTextures = createFlowerTextures();
+
+        // ==================== PARTÍCULAS DE FONDO (Luciérnagas) ====================
+        function createBackgroundParticles() {
+            for (let i = 0; i < 40; i++) {
+                const firefly = document.createElement('div');
+                firefly.className = 'firefly';
+
+                firefly.style.left = (Math.random() * 100) + 'vw';
+                firefly.style.top = (Math.random() * 100) + 'vh';
+
+                const size = 4 * Math.random() + 2;
+                firefly.style.width = size + 'px';
+                firefly.style.height = size + 'px';
+
+                firefly.style.animationDuration = (10 + Math.random() * 10) + 's';
+                firefly.style.animationDelay = (Math.random() * 10) + 's';
+
+                document.body.appendChild(firefly);
+            }
+        }
+
+        // ==================== EFECTOS AL TOCAR ====================
+        function createClickEffect(x, y) {
+            // Ripple
+            const ripple = document.createElement('div');
+            ripple.className = 'click-ripple';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            document.body.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+
+            // Sparkles
+            for (let i = 0; i < 5; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'click-sparkle';
+                sparkle.style.left = x + 'px';
+                sparkle.style.top = y + 'px';
+                sparkle.style.setProperty('--tx', (100 * (Math.random() - 0.5)) + 'px');
+                sparkle.style.setProperty('--ty', (100 * (Math.random() - 0.5)) + 'px');
+                document.body.appendChild(sparkle);
+
+                setTimeout(() => sparkle.remove(), 800);
+            }
+        }
+
+        // ==================== FLOR PRINCIPAL ====================
+        const activeFlowers = [];
+
+        function spawnFlower() {
+            const textureIndex = Math.floor(Math.random() * flowerTextures.length);
+            const x = 140 * Math.random() - 70 + 400; // Centro del tarro
+            const scale = 0.85 + 0.3 * Math.random();
+
+            const flower = Bodies.circle(x, -50, 22 * scale, {
+                restitution: 0.3,
+                friction: 0.8,
+                density: 0.04,
+                angle: Math.random() * Math.PI * 2,
+                render: {
+                    sprite: {
+                        texture: flowerTextures[textureIndex],
+                        xScale: scale,
+                        yScale: scale
+                    }
+                }
+            });
+
+            Body.setVelocity(flower, {
+                x: 4 * (Math.random() - 0.5),
+                y: 3 + 2 * Math.random()
+            });
+
+            Body.setAngularVelocity(flower, 0.3 * (Math.random() - 0.5));
+
+            activeFlowers.push(flower);
+            Composite.add(engine.world, flower);
+
+            // Activar sorpresa al llegar a la meta
+            if (!eventTriggered && activeFlowers.length >= GOAL_FLOWERS) {
+                triggerSurprise();
+            }
+        }
+
+        function triggerSurprise() {
+            eventTriggered = true;
+            jarGlowing = true;
+
+            document.getElementById('messageCard').classList.add('show');
+            document.querySelector('.ui-layer p').style.opacity = '0';
+        }
+
+        // ==================== DIBUJO PERSONALIZADO DEL TARRO ====================
+        Events.on(render, 'afterRender', () => {
+            const ctx = render.context;
+            ctx.clearRect(0, 0, 800, 650);
+
+            // Fondo del tarro (gradiente)
+            const grad = ctx.createLinearGradient(0, 650, 0, 800);
+            grad.addColorStop(0, '#2b1b10');
+            grad.addColorStop(1, '#1a120c');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 650, 800, 150);
+
+            // Sombra base
+            ctx.fillStyle = '#0f0a07';
+            ctx.fillRect(0, 650, 800, 6);
+
+            // Dibujo del tarro (borde brillante cuando brilla)
+            if (jarGlowing) {
+                const pulse = 15 + 10 * Math.sin(engine.timing.timestamp * 0.005);
+                ctx.shadowColor = 'rgba(255, 215, 0, 0.9)';
+                ctx.shadowBlur = pulse;
+            }
+
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(250, 250);
+            ctx.lineTo(250, 680);
+            ctx.quadraticCurveTo(250, 720, 290, 720);
+            ctx.lineTo(510, 720);
+            ctx.quadraticCurveTo(550, 720, 550, 680);
+            ctx.lineTo(550, 250);
+            ctx.stroke();
+
+            // Bordes superiores
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+            ctx.beginPath();
+            ctx.ellipse(400, 250, 150, 20, 0, 0, 2 * Math.PI);
+            ctx.fill();
+        });
+
+        // ==================== EVENTOS ====================
+        window.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.message-card')) return;
+
+            e.preventDefault();
+            createClickEffect(e.clientX, e.clientY);
+
+            if (activeFlowers.length < MAX_FLOWERS) {
+                spawnFlower();
+            }
+        }, { passive: false });
+
+        // ==================== INICIO ====================
+        createBackgroundParticles();
+        Render.run(render);
+
+        const runner = Runner.create();
+        Runner.run(runner, engine);
+    </script>
+
+</body>
+</html>
